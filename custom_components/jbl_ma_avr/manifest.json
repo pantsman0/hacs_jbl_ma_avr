@@ -1,0 +1,33 @@
+{
+  "domain": "jbl_ma_avr",
+  "name": "JBL MA AVR",
+  "codeowners": ["@antigravity"],
+  "config_flow": true,
+  "dependencies": [],
+  "documentation": "https://github.com/google/antigravity",
+  "integration_type": "device",
+  "iot_class": "local_push",
+  "requirements": [],
+  "version": "1.0.0",
+  "ssdp": [
+    {
+      "manufacturer": "JBL"
+    },
+    {
+      "manufacturer": "Harman"
+    },
+    {
+      "manufacturer": "HARMAN"
+    }
+  ],
+  "zeroconf": [
+    {
+      "type": "_http._tcp.local.",
+      "name": "JBL*"
+    },
+    {
+      "type": "_googlecast._tcp.local.",
+      "name": "JBL*"
+    }
+  ]
+}

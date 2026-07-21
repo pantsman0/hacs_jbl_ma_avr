@@ -1,33 +1,28 @@
 {
   "domain": "jbl_ma_avr",
-  "name": "JBL MA AVR",
-  "codeowners": ["@antigravity"],
+  "name": "JBL MA Series AV Receivers",
+  "codeowners": [
+    "@pantsman0"
+  ],
   "config_flow": true,
   "dependencies": [],
-  "documentation": "https://github.com/google/antigravity",
+  "documentation": "https://www.jbl.com.br/on/demandware.static/-/Sites-masterCatalog_Harman/default/dw38a40edc/pdfs/IPControl_MA_Series_v17.pdf",
   "integration_type": "device",
   "iot_class": "local_push",
   "requirements": [],
   "version": "1.0.0",
   "ssdp": [
     {
-      "manufacturer": "JBL"
+      "modelName": "JBL MA510"
     },
     {
-      "manufacturer": "Harman"
+      "modelName": "JBL MA710"
     },
     {
-      "manufacturer": "HARMAN"
-    }
-  ],
-  "zeroconf": [
-    {
-      "type": "_http._tcp.local.",
-      "name": "JBL*"
+      "modelName": "JBL MA7100HP"
     },
     {
-      "type": "_googlecast._tcp.local.",
-      "name": "JBL*"
+      "modelName": "JBL MA9100HP"
     }
   ]
 }

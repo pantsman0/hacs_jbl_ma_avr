@@ -1,10 +1,10 @@
 import logging
 
 from homeassistant.components.media_player import (
-    MediaPlayerDeviceClass
+    MediaPlayerDeviceClass,
     MediaPlayerEntity,
     MediaPlayerEntityFeature,
-    MediaPlayerState,
+    MediaPlayerState
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant

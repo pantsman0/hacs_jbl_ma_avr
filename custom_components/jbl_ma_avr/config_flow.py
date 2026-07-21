@@ -4,9 +4,8 @@ import voluptuous as vol
 from typing import Any
 
 from homeassistant import config_entries
-from homeassistant.const import CONF_HOST
-from homeassistant.components.ssdp import SsdpServiceInfo
-from homeassistant.components.zeroconf import ZeroconfServiceInfo
+from homeassistant.const import CONF_HOST, CONF_MODEL
+from homeassistant.helpers.service_info.ssdp import SsdpServiceInfo
 
 from .const import DOMAIN, DEFAULT_PORT
 
@@ -49,25 +48,14 @@ class JblMaAvrConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             return self.async_abort(reason="no_host")
 
         self._discovered_host = host
-        self._discovered_name = discovery_info.upnp.get("friendlyName", "JBL MA AVR")
+        self._discovered_name = discovery_info.upnp.get("friendlyName", "JBL MA Series AV Reveiver")
+        self._discovered_model = discovery_info.upnp.get("modelName", "JBL MA Series AV Reveiver")
 
         if udn := discovery_info.upnp.get("UDN"):
             await self.async_set_unique_id(udn)
-            self._abort_if_unique_id_configured(updates={CONF_HOST: host})
+            self._abort_if_unique_id_configured(updates={CONF_HOST: host, CONF_MODEL: self._discovered_model})
         
         self._async_abort_entries_match({CONF_HOST: host})
-
-        self.context["title_placeholders"] = {"name": self._discovered_name}
-        return await self.async_step_discovery_confirm()
-
-    async def async_step_zeroconf(
-        self, discovery_info: ZeroconfServiceInfo
-    ) -> config_entries.ConfigFlowResult:
-        """Handle a discovered device via Zeroconf."""
-        self._discovered_host = discovery_info.host
-        self._discovered_name = discovery_info.name.split(".")[0]
-
-        self._async_abort_entries_match({CONF_HOST: self._discovered_host})
 
         self.context["title_placeholders"] = {"name": self._discovered_name}
         return await self.async_step_discovery_confirm()
@@ -79,7 +67,7 @@ class JblMaAvrConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             return self.async_create_entry(
                 title=self._discovered_name or self._discovered_host or "JBL MA Series AV Receiver",
-                data={CONF_HOST: self._discovered_host},
+                data={CONF_HOST: self._discovered_host, CONF_MODEL: self._discovered_model},
             )
 
         return self.async_show_form(

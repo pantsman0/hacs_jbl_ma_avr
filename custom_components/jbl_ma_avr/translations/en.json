@@ -20,5 +20,11 @@
       "already_configured": "Device is already configured",
       "no_host": "Could not determine host IP address from discovery"
     }
+  },
+  "api_errors": {
+    "c1": "Command not recognised",
+    "c2": "Parameter not recognised",
+    "c3": "Command invalid at this time",
+    "c4": "Invalid data length"
   }
 }

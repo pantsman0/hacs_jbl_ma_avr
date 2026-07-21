@@ -5,7 +5,14 @@ from homeassistant.const import CONF_HOST, Platform
 from .const import DOMAIN
 from .jbl_api import JblApi
 
-PLATFORMS = [Platform.MEDIA_PLAYER]
+PLATFORMS = [
+    Platform.MEDIA_PLAYER,
+    Platform.SWITCH,
+    Platform.NUMBER,
+    Platform.SELECT,
+    Platform.SENSOR,
+    Platform.BUTTON,
+]
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up JBL MA AVR from a config entry."""

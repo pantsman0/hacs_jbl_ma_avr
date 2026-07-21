@@ -11,7 +11,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.device_registry import DeviceInfo
 
-from .const import DOMAIN, SOURCES, SOURCES_INV
+from .const import DOMAIN, SOURCES, SOURCES_INV, SURROUND_MODES, SURROUND_MODES_INV
 from .jbl_api import JblApi
 
 _LOGGER = logging.getLogger(__name__)
@@ -49,6 +49,7 @@ class JblMaAvrMediaPlayer(MediaPlayerEntity):
             | MediaPlayerEntityFeature.VOLUME_STEP
             | MediaPlayerEntityFeature.VOLUME_MUTE
             | MediaPlayerEntityFeature.SELECT_SOURCE
+            | MediaPlayerEntityFeature.SELECT_SOUND_MODE
         )
 
     async def async_added_to_hass(self) -> None:
@@ -98,6 +99,18 @@ class JblMaAvrMediaPlayer(MediaPlayerEntity):
         """List of available input sources."""
         return list(SOURCES.values())
 
+    @property
+    def sound_mode(self) -> str | None:
+        """Return the current surround mode."""
+        if self._api.surround_mode is None:
+            return None
+        return SURROUND_MODES.get(self._api.surround_mode, f"Unknown ({self._api.surround_mode}")
+
+    @property
+    def sound_mode_list(self) -> list[str]:
+        """Return the list of available surround modes."""
+        return list(SURROUND_MODES.values())
+
     async def async_turn_on(self) -> None:
         """Turn the media player on."""
         await self._api.turn_on()
@@ -127,3 +140,8 @@ class JblMaAvrMediaPlayer(MediaPlayerEntity):
         """Select input source."""
         if source in SOURCES_INV:
             await self._api.select_source(SOURCES_INV[source])
+
+    async def async_select_sound_mode(self, sound_mode: str) -> None:
+        """Select surround mode."""
+        if sound_mode in SURROUND_MODES_INV:
+            await self._api.set_surround_mode(SURROUND_MODES_INV[sound_mode])

@@ -69,6 +69,24 @@ class JblApi:
         self.volume = None
         self.mute = None
         self.source = None
+        self.surround_mode = None
+        self.display_dim = None
+        self.party_mode = None
+        self.party_volume = None
+        self.treble_eq = None
+        self.bass_eq = None
+        self.room_eq = None
+        self.dialog_enhance = None
+        self.dolby_mode = None
+        self.dolby_compression = None
+        self.streaming_server = None
+        self.streaming_state = None
+        self.version_ip_control: str | None = None
+        self.version_host: str | None = None
+        self.version_dsp: str | None = None
+        self.version_osd: str | None = None
+        self.version_net: str | None = None
+        self.model_id: int | None = None  # 0x01=MA510, 0x02=MA710, 0x03=MA7100HP, 0x04=MA9100HP
 
     def register_callback(self, callback):
         self.callbacks.append(callback)
@@ -76,6 +94,11 @@ class JblApi:
     def _notify_callbacks(self):
         for callback in self.callbacks:
             callback()
+
+    @property
+    def supports_ma710_plus(self) -> bool:
+        """True for MA710, MA7100HP, MA9100HP — i.e. model_id >= 0x02."""
+        return self.model_id is not None and self.model_id >= 0x02
 
     async def connect(self):
         try:
@@ -201,7 +224,12 @@ class JblApi:
         
         if message.rsp_code != ResponseCode.SUCCESS:
             error_msg = _ERRORS.get(f"{message.rsp_code:x}", f"Unknown error code {hex(message.rsp_code)}")
-            _LOGGER.warning(f"Error response for cmd {hex(cmd_id)}: {error_msg}")
+            # C1 (not recognised) and C3 (invalid at this time) are expected for
+            # model-specific features not supported by this unit — log at DEBUG.
+            if message.rsp_code in (ResponseCode.COMMAND_NOT_RECOGNISED, ResponseCode.COMMAND_INVALID_AT_THIS_TIME):
+                _LOGGER.debug(f"Unsupported cmd {hex(cmd_id)}: {error_msg}")
+            else:
+                _LOGGER.warning(f"Error response for cmd {hex(cmd_id)}: {error_msg}")
             return
         
         if len(data) == 0:
@@ -231,18 +259,142 @@ class JblApi:
                 if self.source != new_source:
                     self.source = new_source
                     changed = True
-                    
+            case Commands.SURROUND_MODE:
+                val = data[0]
+                if self.surround_mode != val:
+                    self.surround_mode = val
+                    changed = True
+            case Commands.DISPLAY:
+                val = data[0]
+                if self.display_dim != val:
+                    self.display_dim = val
+                    changed = True
+            case Commands.PARTY_MODE:
+                val = (data[0] == 0x01)
+                if self.party_mode != val:
+                    self.party_mode = val
+                    changed = True
+            case Commands.PARTY_VOLUME:
+                val = data[0]
+                if self.party_volume != val:
+                    self.party_volume = val
+                    changed = True
+            case Commands.TREBLE_EQ:
+                val = self._decode_eq(data[0])
+                if self.treble_eq != val:
+                    self.treble_eq = val
+                    changed = True
+            case Commands.BASS_EQ:
+                val = self._decode_eq(data[0])
+                if self.bass_eq != val:
+                    self.bass_eq = val
+                    changed = True
+            case Commands.ROOM_EQ:
+                val = data[0]
+                if self.room_eq != val:
+                    self.room_eq = val
+                    changed = True
+            case Commands.DIALOG_ENHANCE_MODE:
+                val = (data[0] == 0x01)
+                if self.dialog_enhance != val:
+                    self.dialog_enhance = val
+                    changed = True
+            case Commands.DOLBY_MODE:
+                val = data[0]
+                if self.dolby_mode != val:
+                    self.dolby_mode = val
+                    changed = True
+            case Commands.DOLBY_COMPRESSION:
+                val = (data[0] == 0x01)
+                if self.dolby_compression != val:
+                    self.dolby_compression = val
+                    changed = True
+            case Commands.STREAMING_STATE:
+                if len(data) >= 2:
+                    s_server = data[0]
+                    s_state = data[1]
+                    if self.streaming_server != s_server or self.streaming_state != s_state:
+                        self.streaming_server = s_server
+                        self.streaming_state = s_state
+                        changed = True
+            case Commands.INIT:
+                # Response data[0] is the model ID reported by the AVR.
+                if len(data) >= 1:
+                    mid = data[0]
+                    if self.model_id != mid:
+                        self.model_id = mid
+                        _LOGGER.debug(
+                            f"AVR model_id=0x{mid:02x} "
+                            f"(MA510=0x01, MA710=0x02, MA7100HP=0x03, MA9100HP=0x04)"
+                        )
+                        changed = True
+            case Commands.VERSION:
+                # data[0] = sub-type, data[1:] = ASCII version string
+                if len(data) >= 2:
+                    version_str = data[1:].decode("ascii", errors="replace")
+                    sub = data[0]
+                    if sub == 0xF0:
+                        attr = "version_ip_control"
+                    elif sub == 0xF1:
+                        attr = "version_host"
+                    elif sub == 0xF2:
+                        attr = "version_dsp"
+                    elif sub == 0xF3:
+                        attr = "version_osd"
+                    elif sub == 0xF4:
+                        attr = "version_net"
+                    else:
+                        attr = None
+                    if attr and getattr(self, attr) != version_str:
+                        setattr(self, attr, version_str)
+                        changed = True
+
         if changed:
             self._notify_callbacks()
 
+    @staticmethod
+    def _decode_eq(raw: int) -> int:
+        """Convert wire byte to signed dB (-12..+12)."""
+        if raw <= 0x0C:
+            return raw
+        # 0xFF=-1, 0xFE=-2, ..., 0xF4=-12
+        return raw - 256
+
+    @staticmethod
+    def _encode_eq(db: int) -> int:
+        """Convert signed dB to wire byte."""
+        if db >= 0:
+            return db & 0xFF
+        return (db + 256) & 0xFF
+
     async def update_state(self):
-        await self._send_command(Commands.POWER, [0xF0])
-        await asyncio.sleep(0.1)
-        await self._send_command(Commands.VOLUME, [0xF0])
-        await asyncio.sleep(0.1)
-        await self._send_command(Commands.MUTE, [0xF0])
-        await asyncio.sleep(0.1)
-        await self._send_command(Commands.SOURCE, [0xF0])
+        always_polled = [
+            Commands.POWER,
+            Commands.VOLUME,
+            Commands.MUTE,
+            Commands.SOURCE,
+            Commands.SURROUND_MODE,
+            Commands.DISPLAY,
+            Commands.TREBLE_EQ,
+            Commands.BASS_EQ,
+            Commands.ROOM_EQ,
+            Commands.DIALOG_ENHANCE_MODE,
+            Commands.DOLBY_MODE,
+            Commands.STREAMING_STATE,
+        ]
+        ma710_plus_only = [
+            Commands.PARTY_MODE,    # 0x09 — MA710/MA7100HP/MA9100HP only
+            Commands.PARTY_VOLUME,  # 0x0A — MA710/MA7100HP/MA9100HP only
+            Commands.DOLBY_COMPRESSION,  # 0x10 — MA710/MA7100HP/MA9100HP only
+        ]
+        cmds = always_polled + (ma710_plus_only if self.supports_ma710_plus else [])
+        for cmd in cmds:
+            await self._send_command(cmd, [0xF0])
+            await asyncio.sleep(0.05)
+        # Version sub-types: 0xF0=IP control, 0xF1=Host, 0xF2=DSP, 0xF3=OSD, 0xF4=NET
+        for sub in [0xF0, 0xF1, 0xF2, 0xF3, 0xF4]:
+            await self._send_command(Commands.VERSION, [sub])
+            await asyncio.sleep(0.05)
 
     async def turn_on(self):
         await self._send_command(Commands.POWER, [0x01])
@@ -254,10 +406,10 @@ class JblApi:
         await self._send_command(Commands.VOLUME, [volume])
 
     async def volume_up(self):
-        await self._send_command(Commands.IR_COMMAND, [0x01,0x0E,0xE3])
-    
+        await self._send_command(Commands.IR_COMMAND, [0x01, 0x0E, 0xE3])
+
     async def volume_down(self):
-        await self._send_command(Commands.IR_COMMAND, [0x01,0x0E,0x13])
+        await self._send_command(Commands.IR_COMMAND, [0x01, 0x0E, 0x13])
 
     async def mute_volume(self, mute: bool):
         val = 0x01 if mute else 0x00
@@ -265,3 +417,42 @@ class JblApi:
 
     async def select_source(self, source_id):
         await self._send_command(Commands.SOURCE, [source_id])
+
+    async def set_surround_mode(self, mode_id: int):
+        await self._send_command(Commands.SURROUND_MODE, [mode_id])
+
+    async def set_display_dim(self, level: int):
+        """0=full, 1=50%, 2=25%, 3=off."""
+        await self._send_command(Commands.DISPLAY, [level])
+
+    async def set_party_mode(self, enabled: bool):
+        await self._send_command(Commands.PARTY_MODE, [0x01 if enabled else 0x00])
+
+    async def set_party_volume(self, volume: int):
+        """0–99."""
+        await self._send_command(Commands.PARTY_VOLUME, [max(0, min(99, volume))])
+
+    async def set_treble_eq(self, db: int):
+        """Signed dB, -12 to +12."""
+        await self._send_command(Commands.TREBLE_EQ, [self._encode_eq(db)])
+
+    async def set_bass_eq(self, db: int):
+        """Signed dB, -12 to +12."""
+        await self._send_command(Commands.BASS_EQ, [self._encode_eq(db)])
+
+    async def set_room_eq(self, mode_id: int):
+        """0=disabled, 1=EZ Set EQ, 2=Dirac Live."""
+        await self._send_command(Commands.ROOM_EQ, [mode_id])
+
+    async def set_dialog_enhance(self, enabled: bool):
+        await self._send_command(Commands.DIALOG_ENHANCE_MODE, [0x01 if enabled else 0x00])
+
+    async def set_dolby_mode(self, mode_id: int):
+        """0=off, 1=Music, 2=Movie, 3=Night."""
+        await self._send_command(Commands.DOLBY_MODE, [mode_id])
+
+    async def set_dolby_compression(self, enabled: bool):
+        await self._send_command(Commands.DOLBY_COMPRESSION, [0x01 if enabled else 0x00])
+
+    async def reboot(self):
+        await self._send_command(Commands.REBOOT, [0xAA, 0xAA])

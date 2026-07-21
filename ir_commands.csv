@@ -1,0 +1,37 @@
+Command,Bytes,Note
+Power,010E03,All models
+UP,010E99,All models
+Down,010E59,All models
+Left,010E83,All models
+Right,010E43,All models
+OK,010E21,All models
+Menu,010ECA,All models
+Back,010EA1,All models
+Dim,010EC9,All models
+Vol Plus,010EE3,All models
+Vol Minus,010E13,All models
+Source Plus,010E8C,All models
+Source Minus,010E0C,All models
+Surround Plus,010EF4,All models
+Surround Minus,010E74,All models
+Mute,010EC3,All models
+Main Zone Power On,010ED9,All models
+Main Zone Power Off,010EF9,All models
+Zone2 Party Mode On,010E73,Only available on MA710/MA7100HP/9100HP
+Zone2 Party Mode Off,010E8B,Only available on MA710/MA7100HP/9100HP
+Zone2 Party Mode Vol Up,010E39,Only available on MA710/MA7100HP/9100HP
+Zone2 Party Mode Vol Down,010EB9,Only available on MA710/MA7100HP/9100HP
+Main Zone TV Input,010E71,All models
+Main Zone HDMI1 Input,010E11,All models
+Main Zone HDMI2 Input,010E91,All models
+Main Zone HDMI3 Input,010E51,All models
+Main Zone HDMI4 Input,010ED1,All models
+Main Zone HDMI5 Input,010E31,Only available on MA710/MA7100HP/9100HP
+Main Zone HDMI6 Input,010EB1,Only available on MA710/MA7100HP/9100HP
+Main Zone Coax Input,010E81,All models
+Main Zone Optical Input,010EDB,All models
+Main Zone Analog1 Input,010E23,All models
+Main Zone Analog2 Input,010E33,All models
+Main Zone Phono Input,010E0B,Only available on MA710/MA7100HP/9100HP
+Main Zone Bluetooth Input,010E53,All models
+Main Zone Network Input,010ED3,All models

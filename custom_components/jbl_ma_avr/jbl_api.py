@@ -145,7 +145,7 @@ class JblApi:
             return
             
         data_len = len(data)
-        packet = bytearray([0x23, cmd_id, data_len] + data + [0x0D])
+        packet = bytearray([0x23, cmd_id, data_len] + list(data) + [0x0D])
         _LOGGER.debug(f"Sending: {packet.hex()}")
         try:
             self.writer.write(packet)
@@ -456,3 +456,6 @@ class JblApi:
 
     async def reboot(self):
         await self._send_command(Commands.REBOOT, [0xAA, 0xAA])
+
+    async def send_ir_command(self, data: bytearray):
+        await self._send_command(Commands.IR_COMMAND, data)

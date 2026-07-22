@@ -12,6 +12,7 @@ PLATFORMS = [
     Platform.SELECT,
     Platform.SENSOR,
     Platform.BUTTON,
+    Platform.REMOTE
 ]
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:

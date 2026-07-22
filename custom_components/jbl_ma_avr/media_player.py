@@ -11,7 +11,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.device_registry import DeviceInfo
 
-from .const import DOMAIN, SOURCES, SOURCES_INV, SURROUND_MODES, SURROUND_MODES_INV
+from .const import DOMAIN, SOURCES, SOURCES_INV, SURROUND_MODES, SURROUND_MODES_INV, MODEL_NAMES, MODEL_NAMES_INV
 from .jbl_api import JblApi
 
 _LOGGER = logging.getLogger(__name__)
@@ -38,9 +38,9 @@ class JblMaAvrMediaPlayer(MediaPlayerEntity):
         self._attr_unique_id = entry_id
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, entry_id)},
-            name="JBL MA AVR",
+            name=f"JBL {MODEL_NAMES.get(api.model_id, "AV Receiver")}",
             manufacturer="JBL",
-            model="MA Series AV Receiver",
+            model=f"{MODEL_NAMES.get(api.model_id, "AV Receiver")}",
         )
         self._attr_supported_features = (
             MediaPlayerEntityFeature.TURN_ON
@@ -64,11 +64,9 @@ class JblMaAvrMediaPlayer(MediaPlayerEntity):
     @property
     def state(self) -> MediaPlayerState:
         """Return the state of the device."""
-        if self._api.power is None:
+        if self._api.power is None or not self._api.power:
             return MediaPlayerState.OFF
-        if self._api.power:
-            return MediaPlayerState.ON
-        return MediaPlayerState.OFF
+        return MediaPlayerState.ON
 
     @property
     def volume_level(self) -> float | None:
@@ -80,7 +78,7 @@ class JblMaAvrMediaPlayer(MediaPlayerEntity):
     @property
     def volume_step(self) -> float:
         """Step size to use for volume_up() and volume_down()."""
-        return 1.0 / 99.0
+        return 1.0
 
     @property
     def is_volume_muted(self) -> bool | None:

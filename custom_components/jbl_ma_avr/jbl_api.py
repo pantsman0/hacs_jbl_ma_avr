@@ -63,6 +63,7 @@ class JblApi:
         self._listen_task = None
         self._reconnect_task = None
         self.is_connected = False
+        self._heartbeat_task = None
         
         # State
         self.power = None
@@ -115,6 +116,7 @@ class JblApi:
                 
             await asyncio.sleep(0.1)
             
+            self._heartbeat_task = asyncio.create_task(self._heartbeat())
             self._listen_task = asyncio.create_task(self._listen())
             
             # Request initial state
@@ -125,6 +127,9 @@ class JblApi:
 
     async def disconnect(self):
         self.is_connected = False
+        if self._heartbeat_task:
+            self._heartbeat_task.cancel()
+            self._heartbeat_task = None
         if self._reconnect_task:
             self._reconnect_task.cancel()
             self._reconnect_task = None
@@ -217,6 +222,15 @@ class JblApi:
                 break
         _LOGGER.debug("Listen loop ended")
         asyncio.create_task(self._handle_disconnect())
+
+    async def _heartbeat(self):
+        while True:
+            try:
+                if self.is_connected:
+                    await self._send_command(Commands.HEARTBEAT, [])
+            except Exception as e:
+                _LOGGER.error(f"Heartbeat send failed: {e}")
+            await asyncio.sleep(5)
         
     def _handle_message(self, message: JblServerMessage):
         cmd_id = message.cmd_id

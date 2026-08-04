@@ -362,6 +362,10 @@ class JblApi:
                     if attr and getattr(self, attr) != version_str:
                         setattr(self, attr, version_str)
                         changed = True
+            case Commands.HEARTBEAT:
+                _LOGGER.debug("Received heartbeat message")
+            case _:
+                _LOGGER.error(f"Unhandled server message with CMD ID {cmd_id}: {data:02x}")
 
         if changed:
             self._notify_callbacks()
